@@ -1,98 +1,121 @@
 import streamlit as st
-import pandas as pd
-import os
-from io import BytesIO
 
-# Set up app
-st.set_page_config(page_title="File Data Manager", layout="wide")
+st.title("Unit Converter 🔄")
+st.sidebar.header("Select Conversion Type")
+conversion_type = st.sidebar.selectbox(
+    "Choose a conversion type:",
+    ["Length", "Weight", "Temperature"]
+)
 
-# Centered title
-col1, col2, col3 = st.columns([2, 2, 1])
-with col2:
-    st.title("FileFlex")  
-st.subheader("Upload, Edit, and Download Your Files Easily")  
+def convert_length(value, from_unit, to_unit):
+    length_factors = {
+        "Millimeter": 0.001,
+        "Centimeter": 0.01,
+        "Meter": 1.0,
+        "Kilometer": 1000.0,
+        "Inch": 0.0254,
+        "Foot": 0.3048,
+        "Yard": 0.9144,
+        "Mile": 1609.34
+    }
 
-# File uploader with multiple file support
-c1, c2 = st.columns([1, 1])
-with c1:
-    upload_files = st.file_uploader(
-        "Upload CSV or Excel:", 
-        type=["csv", "xlsx"], 
-        accept_multiple_files=True  
-    )
+    meters = value * length_factors[from_unit]
 
-if upload_files:
-    for file in upload_files:  
-        file_ext = os.path.splitext(file.name)[-1].lower()
+    result = meters / length_factors[to_unit]
+    return result
 
-        # Read file based on type
-        if file_ext == ".csv":
-            df = pd.read_csv(file)
-        elif file_ext == ".xlsx":
-            df = pd.read_excel(file)
+def convert_weight(value, from_unit, to_unit):
+    
+    weight_factors = {
+        "Milligram": 0.001,
+        "Gram": 1.0,
+        "Kilogram": 1000.0,
+        "Tonne": 1000000.0,
+        "Ounce": 28.3495,
+        "Pound": 453.592,
+        "Stone": 6350.29
+    }
+    
+    grams = value * weight_factors[from_unit]
+    
+    result = grams / weight_factors[to_unit]
+    return result
+
+def convert_temperature(value, from_unit, to_unit):
+    if from_unit == "Celsius":
+        if to_unit == "Fahrenheit":
+            return (value * 9/5) + 32
+        elif to_unit == "Kelvin":
+            return value + 273.15
         else:
-            st.error(f"Unsupported file type: {file_ext}")
-            continue
+            return value
+    elif from_unit == "Fahrenheit":
+        if to_unit == "Celsius":
+            return (value - 32) * 5/9
+        elif to_unit == "Kelvin":
+            return (value - 32) * 5/9 + 273.15
+        else:
+            return value
+    elif from_unit == "Kelvin":
+        if to_unit == "Celsius":
+            return value - 273.15
+        elif to_unit == "Fahrenheit":
+            return (value - 273.15) * 9/5 + 32
+        else:
+            return value
 
-        # Display file info
-        st.write(f"**File Name:** {file.name}")
-        st.write(f"**File Size:** {file.getbuffer().nbytes / 1024:.2f} KB")  
+# Main app logic
+if conversion_type == "Length":
+    st.header("Length Converter")
+    col1, col2 = st.columns(2)
+    with col1:
+        length_value = st.number_input("Enter length value:", min_value=0.0)
+        from_length_unit = st.selectbox(
+            "From unit:",
+            ["Millimeter", "Centimeter", "Meter", "Kilometer", "Inch", "Foot", "Yard", "Mile"]
+        )
+    with col2:
+        to_length_unit = st.selectbox(
+            "To unit:",
+            ["Millimeter", "Centimeter", "Meter", "Kilometer", "Inch", "Foot", "Yard", "Mile"]
+        )
+    if st.button("Convert Length"):
+        result = convert_length(length_value, from_length_unit, to_length_unit)
+        st.success(f"✅ {length_value} {from_length_unit} = {result:.4f} {to_length_unit}")
 
-        # Show preview of data
-        st.write("YOU CAN CHANGE VALUES IN DATAFRAME ")
-        edited_df = st.data_editor(df, key=f"editor_{file.name}")  # Allow editing
+elif conversion_type == "Weight":
+    st.header("Weight Converter")
+    col1, col2 = st.columns(2)
+    with col1:
+        weight_value = st.number_input("Enter weight value:", min_value=0.0)
+        from_weight_unit = st.selectbox(
+            "From unit:",
+            ["Milligram", "Gram", "Kilogram", "Tonne", "Ounce", "Pound", "Stone"]
+        )
+    with col2:
+        to_weight_unit = st.selectbox(
+            "To unit:",
+            ["Milligram", "Gram", "Kilogram", "Tonne", "Ounce", "Pound", "Stone"]
+        )
+    if st.button("Convert Weight"):
+        result = convert_weight(weight_value, from_weight_unit, to_weight_unit)
+        st.success(f"✅ {weight_value} {from_weight_unit} = {result:.4f} {to_weight_unit}")
 
-        # Data cleaning options
-        st.subheader(f"Data Cleaning Options for {file.name}")
+elif conversion_type == "Temperature":
+    st.header("Temperature Converter")
+    col1, col2 = st.columns(2)
+    with col1:
+        temp_value = st.number_input("Enter temperature value:")
+        from_temp_unit = st.selectbox(
+            "From unit:",
+            ["Celsius", "Fahrenheit", "Kelvin"]
+        )
+    with col2:
+        to_temp_unit = st.selectbox(
+            "To unit:",
+            ["Celsius", "Fahrenheit", "Kelvin"]
+        )
+    if st.button("Convert Temperature"):
+        result = convert_temperature(temp_value, from_temp_unit, to_temp_unit)
+        st.success(f"✅ {temp_value} {from_temp_unit} = {result:.4f} {to_temp_unit}")
 
-        if st.checkbox(f"Clean Data for {file.name}"):
-            col1, col2 = st.columns(2)
-
-            with col1:
-                if st.button(f"Remove Duplicates from {file.name}"):
-                    edited_df.drop_duplicates(inplace=True)
-                    st.success("Duplicates Removed!")
-
-            with col2:
-                if st.button(f"Fill Missing Values for {file.name}"):
-                    numeric_cols = edited_df.select_dtypes(include=['number']).columns.to_list()
-                    edited_df[numeric_cols] = edited_df[numeric_cols].fillna(edited_df[numeric_cols].mean())
-                    st.success("Missing values have been filled!")
-
-        # Choose specific columns to keep
-        st.subheader("Select columns to keep")
-        columns = st.multiselect(f"Choose Columns for {file.name}", list(edited_df.columns), default=list(edited_df.columns))
-        edited_df = edited_df[columns]
-
-        # Visualizations
-        st.subheader("Data Visualization")
-        if st.checkbox(f"Show Visual Representation of {file.name}"):
-            st.bar_chart(edited_df.select_dtypes(include=['number']).iloc[:, :2])
-
-        # Convert and Download the edited file
-        st.subheader("Convert & Download File")
-        conversion_type = st.radio(f"Convert {file.name} to:", ["CSV", "Excel"], key=file.name)
-
-        if st.button(f"Save & Download {file.name}"):
-            buffer = BytesIO()
-            if conversion_type == "CSV":
-                edited_df.to_csv(buffer, index=False)
-                file_name = file.name.replace(file_ext, ".csv")
-                mime_type = "text/csv"
-            elif conversion_type == "Excel":
-                edited_df.to_excel(buffer, index=False)
-                file_name = file.name.replace(file_ext, ".xlsx")
-                mime_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-
-            buffer.seek(0)
-
-            # Download button
-            st.download_button(
-                label=f"Download {file.name} as {conversion_type}",
-                data=buffer,
-                file_name=file_name,
-                mime=mime_type,   
-                
-            )
-            st.success("Awesome! 🎉 Your file is good to go.")  
-            st.success("We appreciate you choosing our service. Have a great day! 😊") 
